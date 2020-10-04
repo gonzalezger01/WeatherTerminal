@@ -1,9 +1,9 @@
 CFLAGS  = -g -Wall
-weather: weather.o
-	 gcc $(CFLAGS) main.c -o weatherTerminal
+weather: weather.o cJSON.o
+	 gcc $(CFLAGS) -lcurl cJSON.o weather.o main.c -o weatherTerminal
 
 weather.o: cJSON.o
-	gcc $(CFLAGS) -lcurl  weather.h weather.c -c
+	gcc $(CFLAGS)   weather.h weather.c -c
 
 
 cJSON.o: cJSON.h cJSON.c

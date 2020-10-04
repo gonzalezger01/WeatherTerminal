@@ -14,11 +14,6 @@ void trimNewline(void *memory);
 FILE* createConfigFile();
 
 
-struct Location {
-  char *lat;
-  char *lon;
-};
-
 const char *configFolder = ".config";
 int main(){
   printf("Welcome to Weather Terminal\n");
@@ -33,7 +28,8 @@ int main(){
 
     if(location->lat != NULL && location->lon != NULL)
       printf("Lat %s\nLon %s\n",  location->lat, location->lon);
-    
+
+    free(location);
   }
   else{
     file = createConfigFile();
@@ -43,6 +39,9 @@ int main(){
     getline(&zipCode, &buffSize , stdin);
     printf("Entered zipCode %s\n", zipCode);
     trimNewline(zipCode);
+
+    char *destination = malloc(sizeof(char) * 1);
+    obtainLatLongData(zipCode, destination);
   }
 }
 

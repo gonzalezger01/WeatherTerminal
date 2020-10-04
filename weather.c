@@ -6,46 +6,31 @@
 #include "weather.h"
 #include "cJSON.h"
 
-struct Weather{
-  char *city;
-  char *state;
-  char *weatherStatus;
-  int temperature;
-  double rainPercentage;
-  time_t lastUpdateTime;
-  char *zipCode;
-  double lattitude;
-  double longitude;
-};
-
 struct Memory {
   char *response;
   size_t size;
 };
-  const char LAT_LONG_API_URL[] = "https://public.opendatasoft.com/api/records/1.0/search/?dataset=us-zip-code-latitude-and-longitude&q=";
+
+char *latLongApi = "https://public.opendatasoft.com/api/records/1.0/search/?dataset=us-zip-code-latitude-and-longitude&q=";
 
 //most of the code to perform curl request comes from curl's website
-int performCurlRequest(void *zp, void *ll,  void *dest){
+int performCurlRequest(void *api,  void *dest){
   char *destination = (char *) dest;
   CURL *curl;
   CURLcode res;
 
   char *url;
   curl = curl_easy_init();
-  if(curl) {
-    
-    if(zp != NULL)
-      url = zp;
-    
-    if(ll != NULL)
-      url = ll;
+  if(curl && dest != NULL && api != NULL) {
+    if(api != NULL)
+      url = api;
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 
     destination = malloc(sizeof(char) * 1);
-    struct Memory *mem;
+    struct Memory *mem = malloc(sizeof(struct Memory) * 1);
     mem->response = destination;
     mem->size = 0;
     
@@ -57,10 +42,11 @@ int performCurlRequest(void *zp, void *ll,  void *dest){
       return -1;
  
     curl_easy_cleanup(curl);
+    free(mem);
   }
+
   return 0;
 }
-
 
 size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
   size_t realsize = size * nmemb;
@@ -79,11 +65,11 @@ size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
   
 }
 
- void extractWeatherJSON(){
+void extractWeatherJSON(){
    
- }
+}
 
- void extractZipJSON(){
+void extractZipJSON(){
   char s[] = "{ \"name\" : \"Jack\", \"age\" : 27 }\0";
   cJSON *json = cJSON_Parse(s);
   char *string = cJSON_Print(json);
@@ -97,4 +83,21 @@ size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
   }
 
   printf("%s %s\n", string, name->valuestring);
- }
+}
+
+void obtainLatLongData(void *zip, void *dataDest){
+  char *zipCode = (char *)zip;
+  latLongApi = realloc(latLongApi, sizeof(char) * (length(latLongApi)+ 6));
+  latLongApi = strcat(latLongApi, zipCode);
+  performCurlRequest(latLongApi, dataDest);
+  char *dataDestination = (char *)dataDest;
+  printf("Zip data %s\n", dataDestination); 
+}
+
+size_t length(void *data){
+  char *string = (char *)data;
+  size_t counter = 0;
+  while(*(string+counter) != '\0')
+    counter++;
+  return counter+1;
+}  
