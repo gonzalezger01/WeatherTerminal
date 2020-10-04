@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include "weather.h"
 
 int doesDirectoryExist();
 int trimString(void *memory);
@@ -27,7 +28,7 @@ int main(){
   if(doesDirectoryExist() && (file = fopen("weatherConfig.conf", "r")) != NULL){
     
     printf("File exists\n");
-    struct Location *location;
+    struct Location *location = malloc(sizeof(struct Location) * 1);
     readFileContents(file, location);
 
     if(location->lat != NULL && location->lon != NULL)
@@ -38,7 +39,7 @@ int main(){
     file = createConfigFile();
     zipCode = (char *)  malloc(sizeof(char) * 6);
     size_t buffSize = 6;
-    printf("Please enter a zipCode: %s");
+    printf("Please enter a zipCode: ");
     getline(&zipCode, &buffSize , stdin);
     printf("Entered zipCode %s\n", zipCode);
     trimNewline(zipCode);
