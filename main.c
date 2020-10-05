@@ -120,15 +120,15 @@ void extractValue(void *memory){
   free(temporaryStorage);
 }
 
-void trimNewline(void *memory){
-  char* string = (char *) memory;
-  int index = 0;
-  while(*(string + index) != '\0'){
-    if(*(string + index) == '\n')
+void trimNewline(void *data){
+  char *line = (char *) data;
+  size_t index = 0;
+  while(*(line+index) != '\0'){
+    if(*(line+index) == '\n'){
       break;
+    }
     index++;
   }
-  
-  string = realloc(string, sizeof(char) * index+1);
-  *(string+index+1) = '\0';
+
+  *(line+index) = '\0';
 }
