@@ -7,10 +7,10 @@
 #include "cJSON.h"
 
 
-//static void extractZipJSON();
-static size_t length(void *data);
-static size_t write_data(void *data, size_t size, size_t nmemb, void *userp);
+static void extractZipJSON();
 static int performCurlRequest(void *api,  void *dest);
+static size_t write_data(void *data, size_t size, size_t nmemb, void *userp);
+static size_t length(void *data);
 
 struct Memory {
   char *response;
@@ -19,9 +19,19 @@ struct Memory {
 
 char *latLongApi = "https://public.opendatasoft.com/api/records/1.0/search/?dataset=us-zip-code-latitude-and-longitude&q=";
 
+
+void obtainLatLongData(void *zip, void *dataDest){
+  char *zipCode = (char *)zip;
+  char *API = malloc(sizeof(char) * (length(latLongApi) + 6));
+  strcat(API, latLongApi);
+  strcat(API, zipCode);
+  performCurlRequest(API, dataDest);
+  free(API);
+}
+
 //most of the code to perform curl request comes from curl's website
 static int performCurlRequest(void *api,  void *dest){
-  //char *destination = (char *) dest;
+  char *destination = (char *) dest;
   CURL *curl;
   CURLcode res;
 
@@ -33,8 +43,7 @@ static int performCurlRequest(void *api,  void *dest){
     curl_easy_setopt(curl, CURLOPT_URL, url);
 
     struct Memory mem;
-    //mem.response = destination;
-    mem.response = malloc(sizeof(char) * 1);
+    mem.response = destination;
     mem.size = 0;
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
@@ -48,7 +57,6 @@ static int performCurlRequest(void *api,  void *dest){
 
     printf("Contents %s\n", mem.response);
     curl_easy_cleanup(curl);
-    free(mem.response);
   }
 
   return 0;
@@ -75,30 +83,26 @@ static size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
 //   
 //}
 
-/* static void extractZipJSON(){ */
-/*   char s[] = "{ \"name\" : \"Jack\", \"age\" : 27 }\0"; */
-/*   cJSON *json = cJSON_Parse(s); */
-/*   char *string = cJSON_Print(json); */
+void extractZipJSON(void *jsonP, void* dest){
+  char *jsonString = (char *)jsonP;
+  //char *destination = (char *) dest;
+  //  char s[] = "{ \"name\" : \"Jack\", \"age\" : 27 }\0";
+  cJSON *json = cJSON_Parse(jsonString);
+  char *string = cJSON_Print(json);
 
-/*   const cJSON *name = NULL; */
-/*   name = cJSON_GetObjectItemCaseSensitive(json, "name"); */
+  const cJSON *city = NULL;
+  const cJSON *state = NULL;
+  const cJSON *coordinates = NULL;
+  city = cJSON_GetObjectItemCaseSensitive(json, "city");
+  state = cJSON_GetObjectItemCaseSensitive(json, "state");
+  coordinates = cJSON_GetObjectItemCaseSensitive(json, "coordinates");
   
-/*   if (cJSON_IsString(name) && (name->valuestring != NULL)){ */
-/*     printf(name->valuestring); */
-/*     printf("\n"); */
-/*   } */
-
-/*   printf("%s %s\n", string, name->valuestring); */
-/* } */
-
-void obtainLatLongData(void *zip, void *dataDest){
-  char *zipCode = (char *)zip;
-  char *API = malloc(sizeof(char) * (length(latLongApi) + 6));
-  strcat(API, latLongApi);
-  strcat(API, zipCode);
-  printf("%s", API);
-  performCurlRequest(API, dataDest);
-  free(API);
+  if (cJSON_IsString(city) && (name->valuestring != NULL)){
+    printf(city->valuestring);
+    printf(state->valuestring);
+    printf(coordinates->valuestring);
+    printf("\n");
+  }
 }
 
 static size_t length(void *data){

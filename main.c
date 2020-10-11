@@ -19,30 +19,39 @@ int main(){
   printf("Welcome to Weather Terminal\n");
   FILE *file;
   char *zipCode;
+  struct Location *location = malloc(sizeof(struct Location) * 1);
   
   if(doesDirectoryExist() && (file = fopen("weatherConfig.conf", "r")) != NULL){
     
     printf("File exists\n");
-    struct Location *location = malloc(sizeof(struct Location) * 1);
     readFileContents(file, location);
-
     if(location->lat != NULL && location->lon != NULL)
       printf("Lat %s\nLon %s\n",  location->lat, location->lon);
-
-    free(location);
+    
   }
   else{
     file = createConfigFile();
-    zipCode = (char *)  malloc(sizeof(char) * 6);
-    size_t buffSize = 6;
-    printf("Please enter a zipCode: ");
-    getline(&zipCode, &buffSize , stdin);
-    printf("Entered zipCode %s\n", zipCode);
-    trimNewline(zipCode);
+    size_t buffSize = 7;
+    zipCode = (char *)  malloc(sizeof(char) * buffSize);
+    if(zipCode != NULL){
+      printf("Please enter a zipCode: ");
+      getline(&zipCode, &buffSize , stdin);
+      printf("Entered zipCode %s\n", zipCode);
+      trimNewline(zipCode);
 
-    char *destination = malloc(sizeof(char) * 1);
-    obtainLatLongData(zipCode, destination);
+      char *destination  = malloc(sizeof(char) * 1);
+      if(destination != NULL){
+	obtainLatLongData(zipCode, destination);
+	free(destination);
+      }
+      free(zipCode);
+    }
   }
+
+  free(location->lat);
+  free(location->lon);
+  free(location);
+  
 }
 
 int doesDirectoryExist(){
