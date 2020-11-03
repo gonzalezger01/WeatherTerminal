@@ -7,9 +7,9 @@
 #include "weather.h"
 
 int doesDirectoryExist();
-int trimString(void *memory);
-void readFileContents(FILE *fp, void *lp);
-void extractValue(void *memory);
+int trimString(char **memory);
+void readFileContents(FILE *fp, struct Location** lp);
+void extractValue(char **memory);
 void trimNewline(void *memory);
 FILE* createConfigFile();
 
@@ -19,14 +19,15 @@ int main(){
   printf("Welcome to Weather Terminal\n");
   FILE *file;
   char *zipCode;
-  struct Location *location = malloc(sizeof(struct Location) * 1);
+  struct Location *location = NULL;
   
   if(doesDirectoryExist() && (file = fopen("weatherConfig.conf", "r")) != NULL){
     
     printf("File exists\n");
-    readFileContents(file, location);
+    readFileContents(file, &location);
+    fclose(file);
     if(location->lat != NULL && location->lon != NULL)
-      printf("Lat %s\nLon %s\n",  location->lat, location->lon);
+      printf("Lat%s\nLon%s\n",  location->lat, location->lon);
     
   }
   else{
@@ -48,9 +49,13 @@ int main(){
     }
   }
 
-  free(location->lat);
-  free(location->lon);
-  free(location);
+  if(location != NULL){
+    if(location->lat != NULL)
+      free(location->lat);
+    if(location->lon != NULL)
+      free(location->lon);
+    free(location);
+  }
   
 }
 
@@ -58,9 +63,9 @@ int doesDirectoryExist(){
   chdir(getenv("HOME"));
   chdir(configFolder);
   const size_t dirSize = 50;
-  char *currentDir = malloc(sizeof(char)* dirSize);
+  char *currentDir = calloc(sizeof(char), dirSize);
   getcwd(currentDir, dirSize);
-  trimString(currentDir);
+  trimString(&currentDir);
 
   if(currentDir != NULL){
     free(currentDir);
@@ -70,22 +75,22 @@ int doesDirectoryExist(){
   return 1;
 }
 
-void readFileContents(FILE *fp, void* lp){
-  struct Location *location = (struct Location *) lp;
+void readFileContents(FILE *fp, struct Location** location){
+  *location = calloc(sizeof(struct Location), 1);
   if(fp != NULL){
-    location->lat = malloc(sizeof(char) * 20);
-    location->lon = malloc(sizeof(char) * 20);
+    (*location)->lat = calloc(sizeof(char), 20);
+    (*location)->lon = calloc(sizeof(char), 20);
     
-    if(location->lat != NULL){
-      fgets(location->lat, 20, fp);
-      extractValue(location->lat);
-      trimString(location->lat);
+    if((*location)->lat != NULL){
+      fgets((*location)->lat, 20, fp);
+      extractValue(&(*location)->lat);
+      trimString(&(*location)->lat);
     }
     
-    if(location->lon != NULL){
-      fgets(location->lon, 20, fp);
-      extractValue(location->lon);
-      trimString(location->lon);
+    if((*location)->lon != NULL){
+      fgets((*location)->lon, 20, fp);
+      extractValue(&(*location)->lon);
+      trimString(&(*location)->lon);
     }
   }
 }
@@ -95,37 +100,35 @@ FILE* createConfigFile(){
   return fopen("weatherConfig.conf", "w");
 }
 
-int trimString(void *sp){
+int trimString(char **string){
   size_t stringSize = 0;
-  char *string = (char *)sp;
-  while(*(string+stringSize) != '\0'){
+  while(*(*string+stringSize) != '\0'){
     stringSize++;
   }
 
-  string = (char*) realloc(string, sizeof(char) * stringSize + 1);
+  char *trimmedString = (char*) realloc(*string, sizeof(char) * stringSize + 1);
+  *string = trimmedString;
   return stringSize;
 }
 
-void extractValue(void *memory){
-  char *string = (char *) memory;
+void extractValue(char **string){
   int counter = 0;
-  while(*(string + counter) != '='){
+  while(*((*string) + counter) != '='){
     counter++;
   }
-  counter++;
 
-  char *temporaryStorage = malloc(sizeof(char) * 50);
+  char *temporaryStorage = calloc(sizeof(char), 50);
   int index = 0;
-  while(*(string + counter + index) != '\0'){
-    if(*(string + counter + index) != '\n')
-      *(temporaryStorage + index) = *(string + counter + index);
+  while(*(*string + counter + index) != '\0'){
+    if(*(*string + counter + index) != '\n')
+      *(temporaryStorage + index) = *(*string + counter + index);
     index++;
   }
   index++;
 
-  memset(string, 0, sizeof(char));
-  memcpy(string, temporaryStorage, sizeof(char) * index);
-  *(string + index) = '\0';
+  memset(*string, 0, sizeof(char));
+  memcpy(*string, temporaryStorage, sizeof(char) * index);
+  *(*string + index) = '\0';
   free(temporaryStorage);
 }
 

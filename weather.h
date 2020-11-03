@@ -22,6 +22,5 @@ struct Weather{
 
 void obtainLatLongData(void *zip, void *dataDest);
 void obtainWeatherData();
-void extractZipJSON(void *jsonP, void* dest)
 
 #endif

@@ -7,10 +7,10 @@
 #include "cJSON.h"
 
 
-static void extractZipJSON();
 static int performCurlRequest(void *api,  void *dest);
 static size_t write_data(void *data, size_t size, size_t nmemb, void *userp);
 static size_t length(void *data);
+static void extractZipJSON(void *jsonP);
 
 struct Memory {
   char *response;
@@ -22,7 +22,7 @@ char *latLongApi = "https://public.opendatasoft.com/api/records/1.0/search/?data
 
 void obtainLatLongData(void *zip, void *dataDest){
   char *zipCode = (char *)zip;
-  char *API = malloc(sizeof(char) * (length(latLongApi) + 6));
+  char *API = calloc(sizeof(char), (length(latLongApi) + 6));
   strcat(API, latLongApi);
   strcat(API, zipCode);
   performCurlRequest(API, dataDest);
@@ -56,6 +56,7 @@ static int performCurlRequest(void *api,  void *dest){
     }
 
     printf("Contents %s\n", mem.response);
+    extractZipJSON(mem.response);
     curl_easy_cleanup(curl);
   }
 
@@ -66,7 +67,7 @@ static size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
   size_t realsize = size * nmemb;
   struct Memory *mem = (struct Memory *) userp;
 
-  char *ptr = realloc(mem->response, mem->size + realsize + 1);
+  char *ptr = realloc(mem->response, mem->size + realsize);
    if(ptr == NULL)
      return 0;  /* out of memory! */
  
@@ -83,25 +84,34 @@ static size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
 //   
 //}
 
-void extractZipJSON(void *jsonP, void* dest){
+static void extractZipJSON(void *jsonP){
   char *jsonString = (char *)jsonP;
-  //char *destination = (char *) dest;
-  //  char s[] = "{ \"name\" : \"Jack\", \"age\" : 27 }\0";
   cJSON *json = cJSON_Parse(jsonString);
-  char *string = cJSON_Print(json);
 
-  const cJSON *city = NULL;
-  const cJSON *state = NULL;
-  const cJSON *coordinates = NULL;
-  city = cJSON_GetObjectItemCaseSensitive(json, "city");
-  state = cJSON_GetObjectItemCaseSensitive(json, "state");
-  coordinates = cJSON_GetObjectItemCaseSensitive(json, "coordinates");
+  const cJSON *records = NULL;
+  cJSON *record = NULL;
   
-  if (cJSON_IsString(city) && (name->valuestring != NULL)){
-    printf(city->valuestring);
-    printf(state->valuestring);
-    printf(coordinates->valuestring);
-    printf("\n");
+  records = cJSON_GetObjectItemCaseSensitive(json, "records");
+  cJSON_ArrayForEach(record, records){
+    const cJSON *fields = NULL;
+    const cJSON *state = NULL;
+    const cJSON *city = NULL;
+    const cJSON *latitude = NULL;
+    const cJSON *longitude = NULL;
+    fields = cJSON_GetObjectItemCaseSensitive(record, "fields");
+    
+    state = cJSON_GetObjectItemCaseSensitive(fields, "state");
+    city = cJSON_GetObjectItemCaseSensitive(fields, "city");
+    latitude = cJSON_GetObjectItemCaseSensitive(fields, "latitude");
+    longitude = cJSON_GetObjectItemCaseSensitive(fields, "longitude");
+
+    if (cJSON_IsString(city) && (city->valuestring != NULL)){
+      printf("%s\n", city->valuestring);
+      printf("%s\n", state->valuestring);
+      printf("%f\n", latitude->valuedouble);
+      printf("%f\n", longitude->valuedouble);
+      printf("\n");
+    }
   }
 }
 
