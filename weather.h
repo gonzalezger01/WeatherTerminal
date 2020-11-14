@@ -2,25 +2,34 @@
 #define weather__h
 
 #include <stdlib.h>
-struct Location {
-  char *lat;
-  char *lon;
+#include <stdbool.h>
+
+struct Day {
+  char *name;
+  char *startTime;
+  char *endTime;
+  bool isDayTime;
+  int temperature;
+  char *windSpeed;
+  char * windDirection;
+  char *shortForecast;
+  char *detailedForecast;
+  double rainPercentage;
 };
 
-
-struct Weather{
+struct Weather {
   char *city;
   char *state;
-  char *weatherStatus;
-  int temperature;
-  double rainPercentage;
+  char *currentShortForecast;
   time_t lastUpdateTime;
+  struct Day weatherForecast[14];
   char *zipCode;
-  double lattitude;
-  double longitude;
+  char lat;
+  char lon;
+  char *gridId;
 };
 
-void obtainLatLongData(void *zip, void *dataDest);
+void obtainLatLongData(void *zip, struct Weather **dataDest);
 void obtainWeatherData();
 
 #endif

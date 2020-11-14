@@ -1,27 +1,27 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <stddef.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#Include "constants.h"
 #include "weather.h"
 
 int doesDirectoryExist();
 int trimString(char **memory);
-void readFileContents(FILE *fp, struct Location** lp);
+void readFileContents(FILE *fp, struct Weather** lp);
 void extractValue(char **memory);
 void trimNewline(void *memory);
 FILE* createConfigFile();
 
-
-const char *configFolder = ".config";
 int main(){
   printf("Welcome to Weather Terminal\n");
   FILE *file;
   char *zipCode;
   struct Location *location = NULL;
   
-  if(doesDirectoryExist() && (file = fopen("weatherConfig.conf", "r")) != NULL){
+  if(doesDirectoryExist() && (file = fopen(CONFIG_FILE, "r")) != NULL){
     
     printf("File exists\n");
     readFileContents(file, &location);
@@ -40,9 +40,8 @@ int main(){
       printf("Entered zipCode %s\n", zipCode);
       trimNewline(zipCode);
 
-      char *destination  = malloc(sizeof(char) * 1);
       if(destination != NULL){
-	obtainLatLongData(zipCode, destination);
+	obtainLatLongData(zipCode, &weatherP);
 	free(destination);
       }
       free(zipCode);
@@ -61,7 +60,7 @@ int main(){
 
 int doesDirectoryExist(){
   chdir(getenv("HOME"));
-  chdir(configFolder);
+  chdir(CONFIG_FOLDER);
   const size_t dirSize = 50;
   char *currentDir = calloc(sizeof(char), dirSize);
   getcwd(currentDir, dirSize);
