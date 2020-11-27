@@ -1,49 +1,40 @@
-#include <time.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <curl/curl.h>
 #include "weather.h"
-#include "cJSON.h"
-#include "constants.h"
 
-
-static int performCurlRequest(void *api, struct Weather **weatherP);
+static int performCurlRequest(void *api, struct Weather *weatherP);
 static size_t write_data(void *data, size_t size, size_t nmemb, void *userp);
-static size_t length(void const *data);
-static void extractZipJSON(void *jsonP, struct Weather **weatherP);
+static void extractZipJSON(void *jsonP, struct Weather *weatherP);
 
 struct Memory {
   char *response;
   size_t size;
 };
 
-void obtainLatLongData(void *zip, struct Weather **weatherP){
+void obtainLatLongData(void *zip, struct Weather *weatherP){
   char *zipCode = (char *)zip;
-  char *API = calloc(sizeof(char), (length(LAT_LONG_API) + 6));
+  const int zipLength = 6;
+  char *API = calloc(sizeof(char), (length(LAT_LONG_API) + zipLength));
   strcat(API, LAT_LONG_API);
   strcat(API, zipCode);
-  performCurlRequest(API, &weatherP);
+  performCurlRequest(API, weatherP);
   free(API);
 }
 
 //most of the code to perform curl request comes from curl's website
-static int  performCurlRequest(void *api, struct Weather **weatherP){
-  char *destination = (char *) dest;
+static int  performCurlRequest(void *api, struct Weather *weatherP){
   CURL *curl;
   CURLcode res;
 
   char *url;
   curl_global_init(CURL_GLOBAL_DEFAULT);
   curl = curl_easy_init();
-  if(curl != NULL && dest != NULL && api != NULL) {
+  if(curl != NULL && api != NULL) {
     url = (char *) api;
     curl_easy_setopt(curl, CURLOPT_URL, url);
 
     struct Memory mem;
-    mem.response = destination;
+    mem.response = calloc(sizeof(char), 1);
     mem.size = 0;
-
+    
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*) &mem);
  
@@ -54,7 +45,7 @@ static int  performCurlRequest(void *api, struct Weather **weatherP){
     }
 
     printf("Contents %s\n", mem.response);
-    extractZipJSON(mem.response);
+    extractZipJSON(mem.response, weatherP);
     curl_easy_cleanup(curl);
   }
 
@@ -77,7 +68,7 @@ static size_t write_data(void *data, size_t size, size_t nmemb, void *userp){
    return realsize; 
 }
 
-static void extractZipJSON(void *jsonP, struct Weather **weatherP){
+static void extractZipJSON(void *jsonP, struct Weather *weatherP){
   char *jsonString = (char *)jsonP;
   cJSON *json = cJSON_Parse(jsonString);
 
@@ -106,11 +97,3 @@ static void extractZipJSON(void *jsonP, struct Weather **weatherP){
     }
   }
 }
-
-static size_t length(void const *data){
-  char *string = (char *)data;
-  size_t counter = 0;
-  while(*(string+counter) != '\0')
-    counter++;
-  return counter+1;
-}  

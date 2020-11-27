@@ -5,34 +5,39 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#Include "constants.h"
+#include "constants.h"
 #include "weather.h"
+#include "utils.h"
 
 int doesDirectoryExist();
-int trimString(char **memory);
-void readFileContents(FILE *fp, struct Weather** lp);
-void extractValue(char **memory);
-void trimNewline(void *memory);
+int trimString(char *string);
+void readFileContents(FILE *fp, struct Weather *lp);
+void extractValue(char *string);
+void trimNewline(char *string);
+char * collectDimension(char *dest, size_t size, FILE *fp);
 FILE* createConfigFile();
 
 int main(){
-  printf("Welcome to Weather Terminal\n");
   FILE *file;
   char *zipCode;
-  struct Location *location = NULL;
-  
+  bool isWeatherDataPresent = false; 
+  struct Weather weather;
+  struct Weather *weatherP = &weather;
+
+  printf("Welcome to Weather Terminal\n");
   if(doesDirectoryExist() && (file = fopen(CONFIG_FILE, "r")) != NULL){
-    
-    printf("File exists\n");
-    readFileContents(file, &location);
+    readFileContents(file, weatherP);
     fclose(file);
-    if(location->lat != NULL && location->lon != NULL)
-      printf("Lat%s\nLon%s\n",  location->lat, location->lon);
-    
+
+    if(weather.lat != NULL && weather.lon != NULL){
+      printf("Lat%s\nLon%s\n",  weather.lat, weather.lon);
+      isWeatherDataPresent = true;
+    }
   }
-  else{
+
+  if(!isWeatherDataPresent){
     file = createConfigFile();
-    size_t buffSize = 7;
+    size_t buffSize = 0;
     zipCode = (char *)  malloc(sizeof(char) * buffSize);
     if(zipCode != NULL){
       printf("Please enter a zipCode: ");
@@ -40,22 +45,15 @@ int main(){
       printf("Entered zipCode %s\n", zipCode);
       trimNewline(zipCode);
 
-      if(destination != NULL){
-	obtainLatLongData(zipCode, &weatherP);
-	free(destination);
-      }
+      obtainLatLongData(zipCode, weatherP);
       free(zipCode);
     }
   }
-
-  if(location != NULL){
-    if(location->lat != NULL)
-      free(location->lat);
-    if(location->lon != NULL)
-      free(location->lon);
-    free(location);
-  }
   
+    if(weather.lat != NULL)
+      free(weather.lat);
+    if(weather.lon != NULL)
+      free(weather.lon);
 }
 
 int doesDirectoryExist(){
@@ -64,7 +62,7 @@ int doesDirectoryExist(){
   const size_t dirSize = 50;
   char *currentDir = calloc(sizeof(char), dirSize);
   getcwd(currentDir, dirSize);
-  trimString(&currentDir);
+  trimString(currentDir);
 
   if(currentDir != NULL){
     free(currentDir);
@@ -74,23 +72,17 @@ int doesDirectoryExist(){
   return 1;
 }
 
-void readFileContents(FILE *fp, struct Location** location){
-  *location = calloc(sizeof(struct Location), 1);
+void readFileContents(FILE *fp, struct Weather* weather){
   if(fp != NULL){
-    (*location)->lat = calloc(sizeof(char), 20);
-    (*location)->lon = calloc(sizeof(char), 20);
-    
-    if((*location)->lat != NULL){
-      fgets((*location)->lat, 20, fp);
-      extractValue(&(*location)->lat);
-      trimString(&(*location)->lat);
+    size_t dimensionLength = 20;
+    char *lat = calloc(sizeof(char), dimensionLength);
+    char *lon = calloc(sizeof(char), dimensionLength);
+
+    if(lat != NULL && lon != NULL){
+      weather->lat = collectDimension(lat, dimensionLength, fp);
+      weather->lon =  collectDimension(lon, dimensionLength, fp);
     }
     
-    if((*location)->lon != NULL){
-      fgets((*location)->lon, 20, fp);
-      extractValue(&(*location)->lon);
-      trimString(&(*location)->lon);
-    }
   }
 }
 
@@ -99,40 +91,39 @@ FILE* createConfigFile(){
   return fopen("weatherConfig.conf", "w");
 }
 
-int trimString(char **string){
-  size_t stringSize = 0;
-  while(*(*string+stringSize) != '\0'){
-    stringSize++;
-  }
-
-  char *trimmedString = (char*) realloc(*string, sizeof(char) * stringSize + 1);
-  *string = trimmedString;
-  return stringSize;
-}
-
-void extractValue(char **string){
+void extractValue(char *string){
   int counter = 0;
-  while(*((*string) + counter) != '='){
+  
+  while(*(string + counter) != '='){
     counter++;
   }
-
+  
   char *temporaryStorage = calloc(sizeof(char), 50);
   int index = 0;
-  while(*(*string + counter + index) != '\0'){
-    if(*(*string + counter + index) != '\n')
-      *(temporaryStorage + index) = *(*string + counter + index);
+  while(*(string + counter + index) != '\0'){
+    if(*(string + counter + index) != '\n')
+      *(temporaryStorage + index) = *(string + counter + index);
     index++;
   }
   index++;
 
-  memset(*string, 0, sizeof(char));
-  memcpy(*string, temporaryStorage, sizeof(char) * index);
-  *(*string + index) = '\0';
+  memcpy(string, temporaryStorage, sizeof(char) * index);
+  *(string + index) = '\0';
   free(temporaryStorage);
 }
 
-void trimNewline(void *data){
-  char *line = (char *) data;
+int trimString(char *string){
+  size_t stringSize = 0;
+  while(*(string+stringSize) != '\0'){
+    stringSize++;
+  }
+
+  char *trimmedString = (char*) realloc(string, sizeof(char) * stringSize + 1);
+  *string = *trimmedString;
+  return stringSize;
+}
+
+void trimNewline(char *line){
   size_t index = 0;
   while(*(line+index) != '\0'){
     if(*(line+index) == '\n'){
@@ -142,4 +133,22 @@ void trimNewline(void *data){
   }
 
   *(line+index) = '\0';
+}
+
+char * collectDimension(char *dest, size_t size, FILE *fp){
+  if(fgets(dest, size, fp) != NULL){
+    if(*dest != '\0'){
+      extractValue(dest);
+      trimString(dest);
+    }else{
+      free(dest);
+      dest = NULL;
+    }
+  }else{
+    perror("fgets() failed");
+    free(dest);
+    dest = NULL;
+  }
+
+  return dest;
 }

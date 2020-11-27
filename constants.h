@@ -11,5 +11,6 @@ extern const char *WEATHER_API_FORECAST;
 extern const char *FORECAST;
 
 extern const char *CONFIG_FOLDER;
+extern const char *CONFIG_FILE;
 
 #endif

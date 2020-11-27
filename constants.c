@@ -12,7 +12,5 @@ const char *FORECAST = "forecast";
 const char *CONFIG_FOLDER = ".config";
 const char *CONFIG_FILE = "weatherConfig.conf";
 
-
-
  
 
